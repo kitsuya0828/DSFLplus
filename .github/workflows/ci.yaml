@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  CI:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: psf/black@stable
+        with:
+          src: "./src"
+          options: "--check"
+      - uses: isort/isort-action@master
+        with:
+          sortPaths: "./src"
+          configuration: --check-only --diff --profile=black --skip-gitignore

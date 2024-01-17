@@ -1,0 +1,7 @@
+.mypy_cache/
+src/data/
+src/**/__pycache__/
+**/.DS_Store
+src/logs/
+src/runs/
+src/tmp/
