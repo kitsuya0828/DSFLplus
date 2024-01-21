@@ -9,7 +9,7 @@ on:
       - main
 
 jobs:
-  CI:
+  format:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,3 +22,17 @@ jobs:
         with:
           sortPaths: "./src"
           configuration: --check-only --diff --profile=black --skip-gitignore
+  
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10' 
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install mypy
+        run: pip install mypy
+      - name: Run mypy
+        run: mypy ./src --ignore-missing-imports
