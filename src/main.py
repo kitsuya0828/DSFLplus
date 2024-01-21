@@ -152,6 +152,7 @@ if __name__ == "__main__":
         type=str,
         required=True,
         choices=["dsfl", "dsflplus"],
+        help="Federated Learning Algorithm to use.",
     )
     # dataset
     parser.add_argument(
@@ -159,37 +160,93 @@ if __name__ == "__main__":
         type=str,
         default="cifar10",
         choices=["mnist", "fmnist", "cifar10"],
+        help="Dataset for the Federated Learning task.",
     )
     parser.add_argument(
         "--partition",
         type=str,
         default="shards",
         choices=["shards", "hetero_dir", "client_inner_dirichlet"],
+        help="Partition strategy for the dataset.",
     )
-    parser.add_argument("--num_shards_per_client", type=int, default=2)
-    parser.add_argument("--dir_alpha", type=float, default=0.5)
-    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--num_shards_per_client",
+        type=int,
+        default=2,
+        help="Number of shards per client.",
+    )
+    parser.add_argument(
+        "--dir_alpha",
+        type=float,
+        default=0.5,
+        help="Parameter for Dirichlet distribution.",
+    )
+    parser.add_argument(
+        "--seed", type=int, default=42, help="Seed for reproducibility."
+    )
     parser.add_argument(
         "--public_private_split",
         type=str,
         default="even_class",
         choices=["even_class", "random_sample"],
+        help="Strategy for splitting data into public and private sets.",
     )
-    parser.add_argument("--private_size", type=int, default=40000)
-    parser.add_argument("--public_size", type=int, default=10000)
-    parser.add_argument("--public_size_per_round", type=int, default=1000)
+    parser.add_argument(
+        "--private_size", type=int, default=40000, help="Size of the private dataset."
+    )
+    parser.add_argument(
+        "--public_size", type=int, default=10000, help="Size of the public dataset."
+    )
+    parser.add_argument(
+        "--public_size_per_round",
+        type=int,
+        default=1000,
+        help="Size of the public data used per round.",
+    )
     # server
-    parser.add_argument("--sample_ratio", type=float, default=1.0)
-    parser.add_argument("--com_round", type=int, default=500)
-    parser.add_argument("--temperature", type=float, default=0.1)
+    parser.add_argument(
+        "--sample_ratio", type=float, default=1.0, help="Sampling ratio for clients."
+    )
+    parser.add_argument(
+        "--com_round", type=int, default=500, help="Number of communication rounds."
+    )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=0.1,
+        help="Temperature for Entropy Reduction Algorithm.",
+    )
     # client
-    parser.add_argument("--total_clients", type=int, default=100)
-    parser.add_argument("--batch_size", type=int, default=100)
-    parser.add_argument("--epochs", type=int, default=5)
-    parser.add_argument("--lr", type=float, default=0.1)
-    parser.add_argument("--kd_epochs", type=int, default=5)
-    parser.add_argument("--kd_batch_size", type=int, default=100)
-    parser.add_argument("--kd_lr", type=float, default=0.1)
+    parser.add_argument(
+        "--total_clients", type=int, default=100, help="Total number of clients."
+    )
+    parser.add_argument(
+        "--batch_size", type=int, default=100, help="Batch size for local training."
+    )
+    parser.add_argument(
+        "--epochs", type=int, default=5, help="Number of epochs for local training."
+    )
+    parser.add_argument(
+        "--lr", type=float, default=0.1, help="Learning rate for local training."
+    )
+    parser.add_argument(
+        "--kd_epochs",
+        type=int,
+        default=5,
+        help="Number of epochs for Knowledge Distillation.",
+    )
+    parser.add_argument(
+        "--kd_batch_size",
+        type=int,
+        default=100,
+        help="Batch size for Knowledge Distillation.",
+    )
+    parser.add_argument(
+        "--kd_lr",
+        type=float,
+        default=0.1,
+        help="Learning rate for Knowledge Distillation.",
+    )
     parser.add_argument(
         "--ood_detection_type",
         type=str,
@@ -203,6 +260,7 @@ if __name__ == "__main__":
             "softmax_mean",
             "softmax_median",
         ],
+        help="Type of Out-of-Distribution detection method.",
     )
     parser.add_argument(
         "--ood_detection_schedule",
@@ -213,10 +271,15 @@ if __name__ == "__main__":
             "linear_50_100",
             "linear_75_100",
         ],
+        help="Schedule of Out-of-Distribution detection.",
     )
     # others
-    parser.add_argument("--test_batch_size", type=int, default=500)
-    parser.add_argument("--comment", type=str, default="")
+    parser.add_argument(
+        "--test_batch_size", type=int, default=500, help="Batch size for testing."
+    )
+    parser.add_argument(
+        "--comment", type=str, default="", help="Additional comments or notes."
+    )
 
     args = parser.parse_args()
 
