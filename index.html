@@ -79,7 +79,15 @@
 
           <div class="column has-text-centered">
             <div class="publication-links">
-              <!-- Code Link. -->
+              <span class="link-block">
+                  <a href="./static/manuscript.pdf"
+                  class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="fa fa-file-pdf"></i>
+                  </span>
+                  <span>Manuscript</span>
+                  </a>
+              </span>
               <span class="link-block">
                 <a href="https://github.com/Kitsuya0828/DSFLplus"
                    class="external-link button is-normal is-rounded is-dark">
@@ -107,13 +115,13 @@
         <h2 class="title is-3">Abstract</h2>
         <div class="content has-text-justified">
           <p>
-            Federated Learning (FL) is a decentralized machine learning setting where many devices collaboratively train a global model without exposing their local training data. While the most used FL methods average clients' model parameters, several distillation-based methods have been proposed to aggregate model outputs for open unlabeled datasets and transfer the knowledge, which can significantly reduce the communication costs.
+            <b>Federated Learning</b> (FL) is a decentralized machine learning setting where many clients collaboratively train a global model without exposing their local training data. While the most used FL methods average clients' model parameters, several distillation-based methods have been proposed to aggregate model outputs for open unlabeled datasets and transfer the knowledge, which can significantly reduce the communication costs.
           </p>
           <p>
-            In this study, we propose a new distillation-based method called DS-FL+, which focus on Energy score. The proposed method utilizes the Energy score used for out-of-distribution detection to perform thresholding, so that clients only send predictions to the server for relatively well-trained data. Further experiments were conducted under two different Non-IID settings to investigate the relationship between threshold value and convergence speed.
+            In this study, we propose a new distillation-based method called <b>DS-FL+</b>, which focus on Energy score. The proposed method utilizes the <b>Energy score</b> used for out-of-distribution detection to perform thresholding, so that clients only send predictions to the server for relatively well-trained data. Further experiments were conducted under two different Non-IID settings to investigate the relationship between threshold value and convergence speed.
           </p>
           <p>
-            Experimental results demonstrate our proposed DS-FL+ dramatically reduces the communication costs while accelerating the learning convergence under Non-IID settings.
+            Experimental results demonstrate our proposed DS-FL+ <b>dramatically reduces the communication costs</b> while accelerating the learning convergence under Non-IID settings.
           </p>
         </div>
       </div>
@@ -124,7 +132,7 @@
 
 <section class="section">
     <div class="container is-max-desktop">
-      <!-- Abstract. -->
+      <!-- Method. -->
       <div class="columns is-centered has-text-centered">
         <div class="column is-four-fifths">
           <h2 class="title is-3">Method</h2>
@@ -135,13 +143,13 @@
           </div>
         </div>
       </div>
-      <!--/ Abstract. -->
+      <!--/ Method. -->
     </div>
   </section>
 
   <section class="section">
     <div class="container is-max-desktop">
-      <!-- Abstract. -->
+      <!-- Results. -->
       <div class="columns is-centered has-text-centered">
         <div class="column is-four-fifths">
           <h2 class="title is-3">Results</h2>
@@ -152,32 +160,32 @@
           </div>
         </div>
       </div>
-      <!--/ Abstract. -->
+      <!--/ Results. -->
     </div>
   </section>
 
 
-<!-- 
+
 <section class="section" id="BibTeX">
   <div class="container is-max-desktop content">
     <h2 class="title">BibTeX</h2>
-    <pre><code>@article{park2021nerfies,
-  author    = {Park, Keunhong and Sinha, Utkarsh and Barron, Jonathan T. and Bouaziz, Sofien and Goldman, Dan B and Seitz, Steven M. and Martin-Brualla, Ricardo},
-  title     = {Nerfies: Deformable Neural Radiance Fields},
-  journal   = {ICCV},
-  year      = {2021},
+    <pre><code>@inproceedings{kitsuya2024energy,
+  author={Kitsuya, Azuma and Tomo, Miyazaki and Shinichiro, Omachi},
+  title={Energy-based Knowledge Distillation for Communication-Efficient Federated Learning},
+  journal={IEICE General Conference, ISS Junior & Student Poster Sessions},
+  year={2024},
 }</code></pre>
   </div>
-</section> -->
+</section>
 
 
 <footer class="footer">
   <div class="container">
     <div class="content has-text-centered">
-      <!-- <a class="icon-link"
-         href="./static/videos/nerfies_paper.pdf">
+      <a class="icon-link"
+         href="./static/manuscript.pdf">
         <i class="fas fa-file-pdf"></i>
-      </a> -->
+      </a>
       <a class="icon-link" href="https://github.com/Kitsuya0828" class="external-link" disabled>
         <i class="fab fa-github"></i>
       </a>
