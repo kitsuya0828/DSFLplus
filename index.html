@@ -115,13 +115,13 @@
         <h2 class="title is-3">Abstract</h2>
         <div class="content has-text-justified">
           <p>
-            <b>Federated Learning</b> (FL) is a decentralized machine learning setting where many clients collaboratively train a global model without exposing their local training data. While the most used FL methods average clients' model parameters, several distillation-based methods have been proposed to aggregate model outputs for open unlabeled datasets and transfer the knowledge, which can significantly reduce the communication costs.
+            <b>Federated Learning</b> (FL) is a decentralized machine learning setting where many clients collaboratively train a global model without exposing their local training data. While the most used FL methods average clients' model parameters, several distillation-based methods have been proposed to aggregate model <b>outputs</b> for open unlabeled datasets and transfer the knowledge, which can significantly reduce the communication costs.
           </p>
           <p>
-            In this study, we propose a new distillation-based method called <b>DS-FL+</b>, which focus on Energy score. The proposed method utilizes the <b>Energy score</b> used for out-of-distribution detection to perform thresholding, so that clients only send predictions to the server for relatively well-trained data. Further experiments were conducted under two different Non-IID settings to investigate the relationship between threshold value and convergence speed.
+            In this study, we propose a new distillation-based method called <b>DS-FL+</b>. It utilizes the <b>Energy score</b> used for out-of-distribution detection to perform thresholding, so that clients only send predictions to the server for relatively well-trained data.
           </p>
           <p>
-            Experimental results demonstrate our proposed DS-FL+ <b>dramatically reduces the communication costs</b> while accelerating the learning convergence under Non-IID settings.
+            Experimental results demonstrate our proposed DS-FL+ <b>can reduce communication costs by ~80%</b> for the CIFAR-10 dataset under the <b>Non-IID</b> setting.
           </p>
         </div>
       </div>
