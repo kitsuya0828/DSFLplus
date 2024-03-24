@@ -3,7 +3,7 @@
 # DS-FL+
 
 > [!NOTE]
-> The implementation of **DS-FL+** (Energy-based Knowledge Distillation for Communication-Efficient Federated Learning, IEICE 2024 student poster session) is available [here](https://github.com/Kitsuya0828/DSFLplus/tree/c8c1e79f427fd4bfd706e62e2bc92ead489c3233).
+> The implementation of **DS-FL+** (Energy-based Knowledge Distillation for Communication-Efficient Federated Learning, IEICE 2024 student poster session) is available [here](https://github.com/Kitsuya0828/DSFLplus/tree/v1.0.0).
 
 This is the implementation of **DS-FL+** (Energy-based Thresholding and Knowledge Distillation for Communication-Efficient Federated Learning on Non-IID Data).
 
