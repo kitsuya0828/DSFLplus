@@ -70,7 +70,11 @@ class DSFLSerialClientTrainer(BaseSerialClientTrainer):
             self.cache.append(pack)
 
     def train(
-        self, state_dict_path, global_logits, global_indices, train_loader
+        self,
+        state_dict_path: str,
+        global_logits: torch.Tensor,
+        global_indices,
+        train_loader: DataLoader,
     ) -> None:
         """Train model with local dataset.
 

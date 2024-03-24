@@ -1,4 +1,3 @@
-import os
 from logging import Logger
 from typing import List
 
@@ -8,6 +7,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, Subset
 
 from algorithm.dsfl import DSFLSerialClientTrainer, DSFLServerHandler
+from dataset import PartitionedDataset
 
 
 class DSFLPlusSerialClientTrainer(DSFLSerialClientTrainer):
@@ -19,8 +19,8 @@ class DSFLPlusSerialClientTrainer(DSFLSerialClientTrainer):
         num_clients: int,
         state_dict_dir: str,
         logger: Logger,
-        ood_detection_type: str,
-        ood_detection_schedule: str,
+        ood_detection_score: str,
+        ood_detection_threshold_delta: float,
         cuda=False,
         device=None,
         personal=False,
@@ -28,26 +28,18 @@ class DSFLPlusSerialClientTrainer(DSFLSerialClientTrainer):
         super().__init__(
             model, num_clients, state_dict_dir, logger, cuda, device, personal
         )
-        self.ood_detection_type = ood_detection_type
-        if self.ood_detection_type is not None and self.ood_detection_type.endswith(
-            "schedule"
-        ):
-            self.ood_detection_schedule_list = self._get_schedule_list(
-                ood_detection_schedule, end=1000
-            )
+        self.ood_detection_score = ood_detection_score
+        self.ood_detection_threshold_delta = ood_detection_threshold_delta
 
-    def _get_schedule_list(self, schedule: str, end: int) -> list:
-        """Get schedule list from schedule string."""
-        match schedule:
-            case "linear_25_100":
-                arr = np.linspace(0.25, 1.0, end)
-            case "linear_50_100":
-                arr = np.linspace(0.5, 1.0, end)
-            case "linear_75_100":
-                arr = np.linspace(0.75, 1.0, end)
-            case _:
-                raise NotImplementedError
-        return arr.tolist()
+    def setup_dataset(self, dataset: PartitionedDataset):
+        super().setup_dataset(dataset)
+        self.ood_detection_thresholds = []
+        for cid in range(self.num_clients):
+            class_count = self.dataset.stats_dict[cid]
+            self.ood_detection_thresholds.append(
+                np.count_nonzero(class_count) / self.dataset.num_classes
+            )
+        self.prev_score = [np.inf] * self.num_clients
 
     def predict(self, public_indices: torch.Tensor) -> List[torch.Tensor]:
         """Predict for public dataset.
@@ -82,81 +74,79 @@ class DSFLPlusSerialClientTrainer(DSFLSerialClientTrainer):
             local_logits = torch.stack(tmp_local_logits)
             local_indices = torch.tensor(public_indices.tolist())
 
-        if self.ood_detection_type is not None:
-            if self.ood_detection_type.startswith("energy"):
-                negative_energy = torch.log(
-                    torch.exp(torch.stack(local_outputs)).sum(dim=1)
+        if self.ood_detection_score is not None:
+            if self.round > 0:  # update threshold
+                self.ood_detection_thresholds[self.current_client_id] = min(
+                    self.ood_detection_thresholds[self.current_client_id]
+                    + self.ood_detection_threshold_delta,
+                    1.0,
                 )
 
-                if self.ood_detection_type == "energy_mean":
-                    threshold = negative_energy.mean()
-                elif self.ood_detection_type == "energy_median":
-                    threshold = negative_energy.median()
-                elif (
-                    self.ood_detection_type == "energy_75percentile"
-                ):  # negative energy 25% percentile
-                    threshold = negative_energy.quantile(0.25)
-                elif (
-                    self.ood_detection_type == "energy_25percentile"
-                ):  # negative energy 75% percentile
-                    threshold = negative_energy.quantile(0.75)
-                elif self.ood_detection_type == "energy_schedule":
-                    if self.round < len(self.ood_detection_schedule_list):
-                        q = self.ood_detection_schedule_list[self.round]  # energy
-                        threshold = negative_energy.quantile(1 - q)  # negative energy
-                    else:  # energy max
-                        threshold = negative_energy.min()
-                else:
-                    raise NotImplementedError
+            if self.ood_detection_score == "energy":
+                energy = -torch.logsumexp(torch.stack(local_outputs), dim=1)
+
+                threshold = energy.quantile(
+                    self.ood_detection_thresholds[self.current_client_id]
+                )
 
                 # classify input as in-distribution if negative energy is larger than the threshold value
-                id_indices = (negative_energy >= threshold).nonzero().squeeze(1).cpu()
+                id_indices = (energy <= threshold).nonzero().squeeze(1).cpu()
 
-                if self.current_client_id == 0:
-                    os.makedirs(f"tmp/{self.datetime}", exist_ok=True)
-                    np.savez(
-                        f"tmp/{self.datetime}/{self.round}.npz",
-                        negative_energy=negative_energy.cpu().numpy(),
-                        target=torch.stack(local_targets).cpu().numpy(),
-                        threshold=np.array(threshold.cpu()),
-                    )
+            elif self.ood_detection_score == "msp":
+                msp = local_logits.max(dim=1)[0]
 
-            elif self.ood_detection_type.startswith("softmax"):
-                softmax_confidence = local_logits.max(dim=1)[0]
-
-                if self.ood_detection_type == "softmax_mean":
-                    threshold = softmax_confidence.mean()
-                elif self.ood_detection_type == "softmax_median":
-                    threshold = softmax_confidence.median()
-                else:
-                    raise NotImplementedError
-
-                id_indices = (
-                    (softmax_confidence >= threshold).nonzero().squeeze(1).cpu()
+                threshold = msp.quantile(
+                    1 - self.ood_detection_thresholds[self.current_client_id]
                 )
 
-                if self.current_client_id == 0:
-                    os.makedirs(f"tmp/{self.datetime}", exist_ok=True)
-                    np.savez(
-                        f"tmp/{self.datetime}/{self.round}.npz",
-                        softmax_confidence=softmax_confidence.cpu().numpy(),
-                        target=torch.stack(local_targets).cpu().numpy(),
-                        threshold=np.array(threshold.cpu()),
+                id_indices = (msp >= threshold).nonzero().squeeze(1).cpu()
+
+            elif self.ood_detection_score == "maxlogit":
+                maxlogit = torch.stack(local_outputs).max(dim=1)[0]
+
+                threshold = maxlogit.quantile(
+                    1 - self.ood_detection_thresholds[self.current_client_id]
+                )
+
+                id_indices = (maxlogit >= threshold).nonzero().squeeze(1).cpu()
+
+            elif self.ood_detection_score == "gen":
+                probs = local_logits
+                M = 10
+                gamma = 0.1
+                probs_sorted, _ = torch.sort(probs, dim=1)
+                probs_sorted_sliced = probs_sorted[:, -M:]
+                generalized_entropy = -torch.sum(
+                    probs_sorted_sliced**gamma * (1 - probs_sorted_sliced) ** gamma,
+                    dim=1,
+                )
+
+                threshold = generalized_entropy.quantile(
+                    1 - self.ood_detection_thresholds[self.current_client_id]
+                )
+
+                id_indices = (
+                    (generalized_entropy >= threshold).nonzero().squeeze(1).cpu()
+                )
+
+            elif self.ood_detection_score == "random":
+                id_indices = torch.randperm(len(local_logits))[
+                    : int(
+                        len(local_logits)
+                        * self.ood_detection_thresholds[self.current_client_id]
                     )
+                ].cpu()
 
             local_logits = local_logits[id_indices]
             local_indices = local_indices[id_indices]
 
         else:  # for logging (same as DSFL)
             if self.current_client_id == 0:
-                negative_energy = torch.log(
-                    torch.exp(torch.stack(local_outputs)).sum(dim=1)
-                )
+                energy = -torch.log(torch.exp(torch.stack(local_outputs)).sum(dim=1))
                 softmax_confidence = local_logits.max(dim=1)[0]
-                os.makedirs(f"tmp/{self.datetime}", exist_ok=True)
                 np.savez(
                     f"tmp/{self.datetime}/{self.round}.npz",
-                    negative_energy=negative_energy.cpu().numpy(),
+                    energy=energy.cpu().numpy(),
                     softmax_confidence=softmax_confidence.cpu().numpy(),
                     target=torch.stack(local_targets).cpu().numpy(),
                 )

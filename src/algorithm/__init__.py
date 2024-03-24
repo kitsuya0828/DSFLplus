@@ -1,2 +1,3 @@
 from algorithm.dsfl import DSFLSerialClientTrainer, DSFLServerHandler
 from algorithm.dsflplus import DSFLPlusSerialClientTrainer, DSFLPlusServerHandler
+from algorithm.single import SingleSerialClientTrainer, SingleServerHandler

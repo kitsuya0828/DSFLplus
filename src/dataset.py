@@ -7,19 +7,19 @@ import torchvision
 from fedlab.contrib.dataset import Subset
 from fedlab.utils.dataset.functional import (
     balance_split,
-    client_inner_dirichlet_partition,
     hetero_dir_partition,
     shards_partition,
 )
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 
-from utils import even_class_split
+from utils import client_inner_dirichlet_partition, even_class_split
 
 CLASS_NUM = {
     "cifar10": 10,
     "mnist": 10,
     "fmnist": 10,
+    "cifar100": 100,
 }
 
 
@@ -48,8 +48,9 @@ class PartitionedDataset:
         self.public_size = public_size
         self.private_size = private_size
         self.synthetic_dataset = None
+        self.num_classes = CLASS_NUM[self.task]
 
-        if self.task in ["cifar10"]:
+        if self.task in ["cifar10", "cifar100"]:
             self.transform = transforms.Compose(
                 [
                     transforms.ToTensor(),
@@ -87,6 +88,26 @@ class PartitionedDataset:
                 self.testset = torchvision.datasets.CIFAR10(
                     root=self.root,
                     train=False,
+                    download=True,
+                    transform=self.test_transform,
+                )
+            case "cifar100":
+                self.trainset = torchvision.datasets.CIFAR100(
+                    root=self.root, train=True, download=True
+                )
+                self.testset = torchvision.datasets.CIFAR100(
+                    root=self.root,
+                    train=False,
+                    download=True,
+                    transform=self.test_transform,
+                )
+            case "imagenet":
+                self.trainset = torchvision.datasets.ImageNet(
+                    root=self.root, split="train", download=True
+                )
+                self.testset = torchvision.datasets.ImageNet(
+                    root=self.root,
+                    split="val",
                     download=True,
                     transform=self.test_transform,
                 )
@@ -177,13 +198,26 @@ class PartitionedDataset:
         subsets = dict()
         self.client_dict = dict()
         for cid in range(self.num_clients):
-            indices = client_dict[cid]
-            if self.public_private_split is not None:
-                indices = [subset_index_to_original_index[i] for i in indices]
-            self.client_dict[cid] = indices
-            subset = Subset(
-                dataset=self.trainset, indices=indices, transform=self.transform
-            )
+            if self.public_private_split is None:
+                self.client_dict = client_dict
+            else:
+                original_indices = [
+                    subset_index_to_original_index[i] for i in client_dict[cid]
+                ]
+                self.client_dict[cid] = original_indices
+
+            if self.task in ["covid19"]:
+                subset = Subset(
+                    dataset=self.trainset,
+                    indices=self.client_dict[cid],
+                    transform=self.transform,
+                )
+            else:
+                subset = Subset(
+                    dataset=self.trainset,
+                    indices=self.client_dict[cid],
+                    transform=self.transform,
+                )
             subsets[cid] = subset
 
         # save private subsets to pkl files

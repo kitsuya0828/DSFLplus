@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import shutil
+import subprocess
 from datetime import datetime
 
 import torch
@@ -12,10 +13,12 @@ from algorithm import (
     DSFLPlusServerHandler,
     DSFLSerialClientTrainer,
     DSFLServerHandler,
+    SingleSerialClientTrainer,
+    SingleServerHandler,
 )
 from dataset import PartitionedDataset
-from model import CNN_MNIST, CNN_FashionMNIST, ResNet18_CIFAR10
-from pipeline import DSFLPipeline, DSFLPlusPipeline
+from model import CNN_MNIST, CNN_FashionMNIST, ResNet18_CIFAR10, ResNet18_CIFAR100
+from pipeline import DSFLPipeline, DSFLPlusPipeline, SinglePipeline
 from utils import seed_everything
 
 
@@ -50,6 +53,9 @@ def main(args, logger, date_time, writer):
         case "cifar10":
             model = ResNet18_CIFAR10()
             server_model = ResNet18_CIFAR10()
+        case "cifar100":
+            model = ResNet18_CIFAR100()
+            server_model = ResNet18_CIFAR100()
         case "mnist":
             model = CNN_MNIST()
             server_model = CNN_MNIST()
@@ -109,8 +115,8 @@ def main(args, logger, date_time, writer):
             cuda=cuda,
             state_dict_dir=state_dict_dir,
             logger=logger,
-            ood_detection_type=args.ood_detection_type,
-            ood_detection_schedule=args.ood_detection_schedule,
+            ood_detection_score=args.ood_detection_score,
+            ood_detection_threshold_delta=args.ood_detection_threshold_delta,
         )
         handler.setup_kd_optim(args.kd_epochs, args.kd_batch_size, args.kd_lr)
         trainer.setup_optim(args.epochs, args.batch_size, args.lr)
@@ -120,6 +126,31 @@ def main(args, logger, date_time, writer):
         trainer.setup_datetime(date_time)
 
         standalone_pipeline = DSFLPlusPipeline(
+            handler=handler,
+            trainer=trainer,
+            test_loader=test_loader,
+            logger=logger,
+            writer=writer,
+        )
+    elif args.algorithm == "single":
+        handler = SingleServerHandler(
+            model=model,
+            global_round=args.com_round,
+            sample_ratio=args.sample_ratio,
+            cuda=cuda,
+            logger=logger,
+        )
+        trainer = SingleSerialClientTrainer(
+            model=model,
+            num_clients=args.total_clients,
+            cuda=cuda,
+            state_dict_dir=state_dict_dir,
+            logger=logger,
+        )
+        trainer.setup_optim(args.epochs, args.batch_size, args.lr)
+        trainer.setup_dataset(dataset=partitioned_dataset)
+
+        standalone_pipeline = SinglePipeline(
             handler=handler,
             trainer=trainer,
             test_loader=test_loader,
@@ -151,7 +182,7 @@ if __name__ == "__main__":
         "--algorithm",
         type=str,
         required=True,
-        choices=["dsfl", "dsflplus"],
+        choices=["dsfl", "dsflplus", "single"],
         help="Federated Learning Algorithm to use.",
     )
     # dataset
@@ -159,7 +190,7 @@ if __name__ == "__main__":
         "--task",
         type=str,
         default="cifar10",
-        choices=["mnist", "fmnist", "cifar10"],
+        choices=["mnist", "fmnist", "cifar10", "cifar100"],
         help="Dataset for the Federated Learning task.",
     )
     parser.add_argument(
@@ -248,30 +279,23 @@ if __name__ == "__main__":
         help="Learning rate for Knowledge Distillation.",
     )
     parser.add_argument(
-        "--ood_detection_type",
+        "--ood_detection_score",
         type=str,
         default=None,
         choices=[
-            "energy_mean",
-            "energy_median",
-            "energy_25percentile",
-            "energy_75percentile",
-            "energy_schedule",
-            "softmax_mean",
-            "softmax_median",
+            "energy",
+            "msp",
+            "maxlogit",
+            "gen",
+            "random",
         ],
-        help="Type of Out-of-Distribution detection method.",
+        help="Score function for Out-of-Distribution detection.",
     )
     parser.add_argument(
-        "--ood_detection_schedule",
-        type=str,
-        default=None,
-        choices=[
-            "linear_25_100",
-            "linear_50_100",
-            "linear_75_100",
-        ],
-        help="Schedule of Out-of-Distribution detection.",
+        "--ood_detection_threshold_delta",
+        type=float,
+        default=0.01,
+        help="Threshold delta for Out-of-Distribution detection.",
     )
     # others
     parser.add_argument(
@@ -285,7 +309,7 @@ if __name__ == "__main__":
 
     date_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-    os.makedirs("tmp", exist_ok=True)
+    os.makedirs(f"tmp/{date_time}", exist_ok=True)
 
     # logging
     os.makedirs("logs", exist_ok=True)
@@ -301,6 +325,10 @@ if __name__ == "__main__":
         + "\n".join(
             [f"--{k}={v} \\" for k, v in args.__dict__.items() if v is not None]
         )
+    )
+    cmd = "git rev-parse --short HEAD"
+    logger.info(
+        f"git commit hash: {subprocess.check_output(cmd.split()).strip().decode('utf-8')}"
     )
     if torch.cuda.is_available():
         logger.info(f"Running on {os.uname()[1]} ({torch.cuda.get_device_name()})")

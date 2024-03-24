@@ -6,5 +6,4 @@ lint:
 	mypy ./src
 
 visualize:
-	tensorboard --logdir=src/runs
-
+	tensorboard --logdir=src/runs --samples_per_plugin=scalars=5000
